@@ -31,5 +31,6 @@ alembic==1.13.2                        # 資料庫版本控管（可選，但強
 flask==3.0.3
 mysql-connector-python==8.4.0
 python-dotenv==1.0.1
+cloud-sql-python-connector[pymysql]==1.9.1
 
 openai>=1.40.0
