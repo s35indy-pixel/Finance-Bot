@@ -4,6 +4,10 @@ import json
 from typing import Optional, Dict, Any, Tuple, List
 from datetime import datetime, date, timedelta
 
+import logging
+
+from mysql.connector import Error as MySQLError
+
 from db import get_db
 from utils_fx_date import HOME_CCY, now_local
 
@@ -105,15 +109,34 @@ _SCHEMA_SQL = [
     """
 ]
 
+logger = logging.getLogger(__name__)
+
+
 def _ensure_schema():
-    db = get_db()
+    """Ensure required tables exist. Skip gracefully if DB is unreachable."""
+    db = None
+    try:
+        db = get_db()
+    except MySQLError as exc:  # pragma: no cover - defensive during startup
+        logger.warning(
+            "Skipping schema initialization because DB is unavailable: %s", exc
+        )
+        return
+    except Exception:  # pragma: no cover - unexpected setup failure
+        logger.exception("Unexpected error while establishing DB connection")
+        raise
+
     try:
         with db.cursor() as cur:
             for sql in _SCHEMA_SQL:
                 cur.execute(sql)
         db.commit()
+    except MySQLError:
+        logger.exception("Failed while ensuring DB schema")
+        raise
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 _ensure_schema()
 
