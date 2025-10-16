@@ -28,15 +28,26 @@ class OCRHandler:
         self.configuration = configuration
         os.makedirs("temp", exist_ok=True)
 
-        # 直接讀取 config.ini，不依賴環境變數
+        # 讀取設定：優先環境變數，其次嘗試 config.ini
         import configparser
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-        
-        self.aoai_endpoint = config["AzureOpenAI"].get("END_POINT", "")
-        self.aoai_key = config["AzureOpenAI"].get("API_KEY", "")
-        self.aoai_api_version = config["AzureOpenAI"].get("API_VERSION", "2024-08-01-preview")
-        self.aoai_vision_deploy = config["AzureOpenAI"].get("VISION_DEPLOYMENT", "gpt-4o-mini")
+
+        config_path = os.getenv("CONFIG_FILE", "config.ini")
+        cfg = configparser.ConfigParser()
+        if os.path.exists(config_path):
+            cfg.read(config_path)
+
+        def _cfg(option: str, env_key: str, default: str = "") -> str:
+            val = os.getenv(env_key)
+            if val:
+                return val
+            if cfg.has_section("AzureOpenAI"):
+                return cfg["AzureOpenAI"].get(option, default)
+            return default
+
+        self.aoai_endpoint = _cfg("END_POINT", "AOAI_ENDPOINT", "")
+        self.aoai_key = _cfg("API_KEY", "AOAI_KEY", "")
+        self.aoai_api_version = _cfg("API_VERSION", "AOAI_API_VERSION", "2024-08-01-preview")
+        self.aoai_vision_deploy = _cfg("VISION_DEPLOYMENT", "AOAI_VISION_DEPLOYMENT", "gpt-4o-mini")
 
         if not self.aoai_endpoint or not self.aoai_key:
             raise ValueError("Azure OpenAI 設定不完整，請檢查 config.ini")
