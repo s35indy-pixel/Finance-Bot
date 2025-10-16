@@ -1,0 +1,26 @@
+# === Python / VSCode ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode/
+.venv/
+*.log
+
+# === 環境與設定檔 ===
+.env
+config.ini
+fx_cache.json
+
+# === 暫存與輸出 ===
+temp/
+收據資料夾/
+簡報/
+*.csv
+*.xlsx
+*.pdf
+*.tmp
+
+# === 作業系統暫存 ===
+.DS_Store
+Thumbs.db

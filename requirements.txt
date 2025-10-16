@@ -1,0 +1,33 @@
+# --- Web / LINE Bot ---
+flask==3.0.3
+line-bot-sdk==3.19.0
+python-dotenv==1.0.1
+
+# --- 排程 / 時區 ---
+APScheduler==3.10.4
+pytz==2024.1
+
+# --- Azure SDKs ---
+azure-identity==1.17.1                 # 用環境變數/Managed Identity 取得 Token
+azure-ai-textanalytics==5.3.0           # 文字分析、關鍵字/情緒（自動分類輔助）
+azure-ai-documentintelligence==1.0.0b3  # 收據/發票 OCR（Form Recognizer 後繼）
+azure-storage-blob==12.21.0             # 收據圖檔/報表上傳到 Blob
+azure-ai-vision-imageanalysis # 若需要圖片品質檢查/畫面中文本偵測再開啟下行
+
+# --- 影像/工具 ---
+pillow==10.4.0
+
+
+# --- Database：Azure Database for MySQL ---
+SQLAlchemy==2.0.31
+PyMySQL==1.1.1
+alembic==1.13.2                        # 資料庫版本控管（可選，但強烈建議）
+
+# --- 報表/資料處理（可選，用於產出 CSV/Excel） ---
+# pandas==2.2.2
+
+flask==3.0.3
+mysql-connector-python==8.4.0
+python-dotenv==1.0.1
+
+openai>=1.40.0
