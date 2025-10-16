@@ -8,16 +8,24 @@ load_dotenv()  # 載入 .env
 
 def get_db():
     """建立並回傳一條新的 DB 連線（autocommit=True）。使用端記得 close()。"""
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "3306")),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        charset="utf8mb4",
-        collation="utf8mb4_general_ci",
-        autocommit=True,
-    )
+    connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
+
+    connect_kwargs = {
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+        "database": os.getenv("DB_NAME"),
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_general_ci",
+        "autocommit": True,
+    }
+
+    if connection_name:
+        connect_kwargs["unix_socket"] = f"/cloudsql/{connection_name}"
+    else:
+        connect_kwargs["host"] = os.getenv("DB_HOST", "localhost")
+        connect_kwargs["port"] = int(os.getenv("DB_PORT", "3306"))
+
+    return mysql.connector.connect(**connect_kwargs)
 
 # 是否在查無此 LINE 使用者時自動建立一筆 users（預設 True；設 .env: AUTO_CREATE_USER_IF_MISSING=0 可關閉）
 _AUTO_CREATE = os.getenv("AUTO_CREATE_USER_IF_MISSING", "1") != "0"
