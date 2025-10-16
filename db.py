@@ -1,14 +1,35 @@
+import atexit
 import os
 from typing import Optional
 
 import mysql.connector
 from dotenv import load_dotenv
+from google.cloud.sql.connector import Connector, IPTypes
 
 load_dotenv()  # 載入 .env
 
+_connector: Optional[Connector] = None
+
+
+def _get_connector() -> Connector:
+    global _connector
+    if _connector is None:
+        _connector = Connector()
+        atexit.register(_connector.close)
+    return _connector
+
+
+def _get_connection_name() -> Optional[str]:
+    for env_key in ("INSTANCE_CONNECTION_NAME", "CLOUD_SQL_CONNECTION_NAME"):
+        value = os.getenv(env_key)
+        if value:
+            return value
+    return None
+
+
 def get_db():
     """建立並回傳一條新的 DB 連線（autocommit=True）。使用端記得 close()。"""
-    connection_name = os.getenv("CLOUD_SQL_CONNECTION_NAME")
+    connection_name = _get_connection_name()
 
     connect_kwargs = {
         "user": os.getenv("DB_USER"),
@@ -20,10 +41,23 @@ def get_db():
     }
 
     if connection_name:
-        connect_kwargs["unix_socket"] = f"/cloudsql/{connection_name}"
-    else:
-        connect_kwargs["host"] = os.getenv("DB_HOST", "localhost")
-        connect_kwargs["port"] = int(os.getenv("DB_PORT", "3306"))
+        ip_type_env = os.getenv("CLOUD_SQL_IP_TYPE", "PUBLIC").upper()
+        ip_type = IPTypes.PRIVATE if ip_type_env == "PRIVATE" else IPTypes.PUBLIC
+
+        connector = _get_connector()
+        return connector.connect(
+            connection_name,
+            "pymysql",
+            user=connect_kwargs["user"],
+            password=connect_kwargs["password"],
+            db=connect_kwargs["database"],
+            charset=connect_kwargs["charset"],
+            autocommit=connect_kwargs["autocommit"],
+            ip_type=ip_type,
+        )
+
+    connect_kwargs["host"] = os.getenv("DB_HOST", "127.0.0.1")
+    connect_kwargs["port"] = int(os.getenv("DB_PORT", "3306"))
 
     return mysql.connector.connect(**connect_kwargs)
 

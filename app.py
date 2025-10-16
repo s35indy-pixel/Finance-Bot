@@ -44,10 +44,25 @@ else:
     print(f"[WARN] 找不到 {config_path}，將改用環境變數設定")
 
 
-def _cfg(section: str, option: str, env_var: str | None = None, default=None):
-    """優先讀環境變數，其次讀 config.ini（若存在）"""
-    if env_var and os.getenv(env_var):
-        return os.getenv(env_var)
+def _cfg(
+    section: str,
+    option: str,
+    env_var: str | list[str] | tuple[str, ...] | None = None,
+    default=None,
+):
+    """優先讀環境變數，其次讀 config.ini（若存在）。"""
+    env_vars: tuple[str, ...]
+    if isinstance(env_var, str):
+        env_vars = (env_var,)
+    elif env_var:
+        env_vars = tuple(env_var)
+    else:
+        env_vars = tuple()
+
+    for name in env_vars:
+        value = os.getenv(name)
+        if value not in (None, ""):
+            return value
     if config and config.has_section(section):
         return config[section].get(option, fallback=default)
     return default
@@ -59,17 +74,31 @@ init_from_config(config)
 os.makedirs("temp", exist_ok=True)
 
 # ===== Azure OpenAI 設定 =====
-AOAI_ENDPOINT = _cfg("AzureOpenAI", "END_POINT", "AOAI_ENDPOINT")
-AOAI_KEY = _cfg("AzureOpenAI", "API_KEY", "AOAI_KEY")
-AOAI_API_VERSION = _cfg("AzureOpenAI", "API_VERSION", "AOAI_API_VERSION", "2024-08-01-preview")
+AOAI_ENDPOINT = _cfg("AzureOpenAI", "END_POINT", ["AOAI_ENDPOINT", "END_POINT"])
+AOAI_KEY = _cfg("AzureOpenAI", "API_KEY", ["AOAI_KEY", "API_KEY"])
+AOAI_API_VERSION = _cfg(
+    "AzureOpenAI",
+    "API_VERSION",
+    ["AOAI_API_VERSION", "API_VERSION"],
+    "2024-08-01-preview",
+)
 AOAI_TEXT_DEPLOYMENT = _cfg(
-    "AzureOpenAI", "TEXT_DEPLOYMENT", "AOAI_TEXT_DEPLOYMENT", "gpt-4o-sindy-20250815"
+    "AzureOpenAI",
+    "TEXT_DEPLOYMENT",
+    ["AOAI_TEXT_DEPLOYMENT", "TEXT_DEPLOYMENT"],
+    "gpt-4o-sindy-20250815",
 )
 AOAI_VISION_DEPLOYMENT = _cfg(
-    "AzureOpenAI", "VISION_DEPLOYMENT", "AOAI_VISION_DEPLOYMENT", AOAI_TEXT_DEPLOYMENT
+    "AzureOpenAI",
+    "VISION_DEPLOYMENT",
+    ["AOAI_VISION_DEPLOYMENT", "VISION_DEPLOYMENT"],
+    AOAI_TEXT_DEPLOYMENT,
 )
 AOAI_WHISPER_DEPLOYMENT = _cfg(
-    "AzureOpenAI", "WHISPER_DEPLOYMENT", "AOAI_WHISPER_DEPLOYMENT", "whisper20250815"
+    "AzureOpenAI",
+    "WHISPER_DEPLOYMENT",
+    ["AOAI_WHISPER_DEPLOYMENT", "WHISPER_DEPLOYMENT"],
+    "whisper20250815",
 )
 
 missing = []
@@ -99,8 +128,16 @@ print(f"[AOAI] text={AOAI_TEXT_DEPLOYMENT}, vision={AOAI_VISION_DEPLOYMENT}, whi
 # ===== Flask / LINE =====
 app = Flask(__name__)
 
-channel_access_token = _cfg("Line", "CHANNEL_ACCESS_TOKEN", "LINE_CHANNEL_ACCESS_TOKEN")
-channel_secret = _cfg("Line", "CHANNEL_SECRET", "LINE_CHANNEL_SECRET")
+channel_access_token = _cfg(
+    "Line",
+    "CHANNEL_ACCESS_TOKEN",
+    ["LINE_CHANNEL_ACCESS_TOKEN", "CHANNEL_ACCESS_TOKEN"],
+)
+channel_secret = _cfg(
+    "Line",
+    "CHANNEL_SECRET",
+    ["LINE_CHANNEL_SECRET", "CHANNEL_SECRET"],
+)
 if not channel_secret or not channel_access_token:
     print("[FATAL] 缺少 LINE 憑證，請在 config.ini 或環境變數補齊：LINE_CHANNEL_ACCESS_TOKEN / LINE_CHANNEL_SECRET")
     sys.exit(1)
