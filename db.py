@@ -2,7 +2,6 @@ import atexit
 import os
 from typing import Optional
 
-import mysql.connector
 from dotenv import load_dotenv
 from google.cloud.sql.connector import Connector, IPTypes
 
@@ -30,36 +29,27 @@ def _get_connection_name() -> Optional[str]:
 def get_db():
     """建立並回傳一條新的 DB 連線（autocommit=True）。使用端記得 close()。"""
     connection_name = _get_connection_name()
+    if not connection_name:
+        raise ValueError("CLOUD_SQL_CONNECTION_NAME environment variable not set.")
 
     connect_kwargs = {
         "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "database": os.getenv("DB_NAME"),
+        "password": os.getenv("DB_PASS"),
+        "db": os.getenv("DB_NAME"),
         "charset": "utf8mb4",
-        "collation": "utf8mb4_general_ci",
         "autocommit": True,
     }
 
-    if connection_name:
-        ip_type_env = os.getenv("CLOUD_SQL_IP_TYPE", "PUBLIC").upper()
-        ip_type = IPTypes.PRIVATE if ip_type_env == "PRIVATE" else IPTypes.PUBLIC
+    ip_type_env = os.getenv("CLOUD_SQL_IP_TYPE", "PUBLIC").upper()
+    ip_type = IPTypes.PRIVATE if ip_type_env == "PRIVATE" else IPTypes.PUBLIC
 
-        connector = _get_connector()
-        return connector.connect(
-            connection_name,
-            "pymysql",
-            user=connect_kwargs["user"],
-            password=connect_kwargs["password"],
-            db=connect_kwargs["database"],
-            charset=connect_kwargs["charset"],
-            autocommit=connect_kwargs["autocommit"],
-            ip_type=ip_type,
-        )
-
-    connect_kwargs["host"] = os.getenv("DB_HOST", "127.0.0.1")
-    connect_kwargs["port"] = int(os.getenv("DB_PORT", "3306"))
-
-    return mysql.connector.connect(**connect_kwargs)
+    connector = _get_connector()
+    return connector.connect(
+        connection_name,
+        "pymysql",
+        **connect_kwargs,
+        ip_type=ip_type,
+    )
 
 # 是否在查無此 LINE 使用者時自動建立一筆 users（預設 True；設 .env: AUTO_CREATE_USER_IF_MISSING=0 可關閉）
 _AUTO_CREATE = os.getenv("AUTO_CREATE_USER_IF_MISSING", "1") != "0"
